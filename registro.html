@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Take Away — Registro</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#fff; --bg-dark:#8f7248; --card:#f6efdf; --navy:#1e3450; --gold:#d3a24a; --white:#fffaf0;}
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{background:var(--bg); min-height:100vh; display:flex; align-items:center; justify-content:center;
+       padding:16px; font-family:'Quicksand',sans-serif; -webkit-tap-highlight-color:transparent;}
+  .card{width:100%; max-width:380px; background:var(--card); border-radius:32px; overflow:hidden;
+        box-shadow:0 25px 50px -18px rgba(0,0,0,.5);}
+  .header{padding:32px 24px 28px; text-align:center; position:relative; overflow:hidden;
+    background:
+      radial-gradient(circle 110px at 15% -25px, #9e8260 85px, transparent 85px),
+      radial-gradient(circle 70px at 88% -15px, #9e8260 55px, transparent 55px),
+      radial-gradient(circle 60px at 12% 105%, #9e8260 45px, transparent 45px),
+      radial-gradient(circle 80px at 80% 108%, #9e8260 62px, transparent 62px),
+      var(--bg-dark);}
+  .header img{ width:100%; max-width:200px; height:auto; display:inline-block; position:relative; z-index:1; }
+  .tagline{font-family:'Baloo 2',sans-serif; color:var(--white); font-size:11px; letter-spacing:2px; text-transform:uppercase; margin-top:8px; position:relative; z-index:1;}
+  .body{padding:28px 24px;}
+  label{display:block; font-weight:600; color:var(--navy); font-size:13px; margin-bottom:8px; letter-spacing:.3px;}
+  input{width:100%; padding:16px 16px; border-radius:16px; border:2px solid #e3d6b8;
+        font-family:'Quicksand',sans-serif; font-size:16px; margin-bottom:18px; background:var(--white);
+        transition:border-color .2s, box-shadow .2s; -webkit-appearance:none;}
+  input:focus{outline:none; border-color:var(--gold); box-shadow:0 0 0 4px rgba(211,162,74,.18);}
+  input::placeholder{color:#c4b69a;}
+  button{width:100%; padding:16px; border:none; border-radius:16px; background:linear-gradient(135deg,var(--navy),#243b5e);
+         color:var(--white); font-family:'Baloo 2',sans-serif; font-weight:700; font-size:17px;
+         cursor:pointer; transition:transform .15s, box-shadow .2s; touch-action:manipulation;
+         box-shadow:0 4px 12px rgba(30,52,80,.3); position:relative; overflow:hidden;}
+  button:active{transform:scale(.97); box-shadow:0 2px 6px rgba(30,52,80,.2);}
+  button:disabled{opacity:.5; transform:none;}
+  .msg{margin-top:16px; text-align:center; font-size:14px; font-weight:600; line-height:1.5;}
+  .msg.ok{color:#2f7a4f;} .msg.error{color:#b1442f;}
+  .msg a{color:var(--navy);}
+  .nav-link{text-align:center; margin-top:20px; font-size:14px; color:#8a7a5c;}
+  .nav-link a{color:var(--navy); text-decoration:none; font-weight:600;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <img src="img/logo.png" alt="Take Away">
+    <div class="tagline">Crear cuenta nueva</div>
+  </div>
+  <div class="body">
+    <form id="form">
+      <label for="nombre">👤 Nombre</label>
+      <input id="nombre" required placeholder="Ej: Wilson Pérez" autocomplete="name">
+      <label for="telefono">📱 Teléfono</label>
+      <input id="telefono" required placeholder="300 123 4567" inputmode="numeric" autocomplete="tel">
+      <button type="submit" id="btn">✨ Crear mi tarjeta</button>
+    </form>
+    <div id="msg"></div>
+    <div class="nav-link">¿Ya tienes tarjeta? <a href="index.html">Inicia sesión</a></div>
+  </div>
+</div>
+
+<script>
+  const API_URL = 'https://script.google.com/macros/s/AKfycbw-xqLfIhxt6t8x2wf0ZGoUrjDKNnsXBjQCo-2ny8u6Iy52z1Fc13-lH6PU41v7ZqJy/exec';
+
+  const form = document.getElementById('form');
+  const btn = document.getElementById('btn');
+  const msg = document.getElementById('msg');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const nombre = document.getElementById('nombre').value.trim();
+    const telefono = document.getElementById('telefono').value.trim();
+    btn.disabled = true; btn.textContent = '⏳ Creando…';
+    msg.textContent = '';
+
+    try{
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ accion: 'registro', nombre, telefono })
+      });
+      const data = await res.json();
+
+      if(data.ok){
+        msg.innerHTML = `<div class="msg ok">✅ ¡Listo! Guarda este link:<br>
+          <a href="tarjeta.html?tel=${telefono}">🔗 Ver mi tarjeta</a></div>`;
+        form.reset();
+      } else if(data.error === 'ya_existe'){
+        msg.innerHTML = '<div class="msg error">⚠️ Ese teléfono ya tiene tarjeta. <a href="index.html">Inicia sesión</a></div>';
+      } else {
+        msg.innerHTML = '<div class="msg error">❌ Algo falló, intenta de nuevo.</div>';
+      }
+    }catch(err){
+      msg.innerHTML = '<div class="msg error">⚠️ No se pudo conectar.</div>';
+    }finally{
+      btn.disabled = false; btn.textContent = '✨ Crear mi tarjeta';
+    }
+  });
+</script>
+</body>
+</html>

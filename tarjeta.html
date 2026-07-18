@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Take Away — Mi tarjeta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fff; --bg-dark:#8f7248; --card:#f6efdf; --line:#e3d6b8;
+    --navy:#1e3450; --navy-2:#2c4a6e; --gold:#d3a24a; --gold-dim:#e8dcc0; --white:#fffaf0;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--bg);
+    background-image:
+      radial-gradient(circle at 15% 8%, rgba(255,255,255,0.06), transparent 40%),
+      radial-gradient(circle at 85% 92%, rgba(0,0,0,0.08), transparent 45%);
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    padding:16px; font-family:'Quicksand',sans-serif; -webkit-tap-highlight-color:transparent;
+  }
+  .card{
+    width:100%; max-width:380px; background:var(--card); border-radius:32px; overflow:hidden;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,.5), 0 2px 0 rgba(255,255,255,.15) inset;
+  }
+
+  .header{ padding:32px 24px 28px; text-align:center; position:relative; overflow:hidden;
+    background:
+      radial-gradient(circle 110px at 15% -25px, #9e8260 85px, transparent 85px),
+      radial-gradient(circle 70px at 88% -15px, #9e8260 55px, transparent 55px),
+      radial-gradient(circle 60px at 12% 105%, #9e8260 45px, transparent 45px),
+      radial-gradient(circle 80px at 80% 108%, #9e8260 62px, transparent 62px),
+      var(--bg-dark); }
+  .header img{ width:100%; max-width:200px; height:auto; display:inline-block; position:relative; z-index:1; }
+
+  .perforation{
+    height:24px; position:relative;
+    background:
+      radial-gradient(circle 8px at 0 50%, transparent 8px, var(--bg-dark) 8.5px) left,
+      radial-gradient(circle 8px at 100% 50%, transparent 8px, var(--bg-dark) 8.5px) right,
+      repeating-linear-gradient(to right, var(--card) 0 10px, transparent 10px 20px);
+    background-repeat:no-repeat, no-repeat, repeat-x;
+    background-size:16px 100%, 16px 100%, 20px 2px;
+    background-position:left, right, center;
+  }
+  .perforation::before, .perforation::after{
+    content:''; position:absolute; top:50%; transform:translateY(-50%);
+    width:18px; height:18px; border-radius:50%; background:var(--bg);
+  }
+  .perforation::before{ left:-9px; } .perforation::after{ right:-9px; }
+
+  .body{ padding:20px 16px 24px; }
+  .estado{ text-align:center; color:var(--navy-2); font-weight:600; font-size:15px; padding:40px 8px; line-height:1.7; }
+
+  .encabezado{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px; }
+  .encabezado .saludo{ font-family:'Baloo 2',sans-serif; font-weight:700; color:var(--navy); font-size:22px; }
+  .encabezado .miembro{ font-size:12px; color:#8a7a5c; letter-spacing:.5px; margin-top:2px; }
+  .encabezado .puntos-wrap{ text-align:right; background:linear-gradient(135deg,var(--gold-dim),#f0e7d0); padding:8px 16px; border-radius:16px; }
+  .encabezado .num{ font-family:'Baloo 2',sans-serif; font-weight:800; color:var(--gold); font-size:28px; line-height:1; }
+  .encabezado .lbl{ font-size:10px; color:var(--navy-2); text-transform:uppercase; letter-spacing:1px; }
+
+  .sellos{ margin-top:20px; }
+  .sellos-title{ font-family:'Baloo 2',sans-serif; font-weight:700; color:var(--navy); font-size:15px; display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .sellos-title small{ font-family:'Quicksand',sans-serif; font-weight:600; color:#8a7a5c; font-size:12px; }
+
+  .stamps{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
+  .stamp{ aspect-ratio:1; display:flex; align-items:center; justify-content:center; }
+  .stamp img{ width:130%; height:130%; margin:-15%; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,.1)); }
+  .stamp.vacio img{ opacity:.45; filter:none; }
+  .stamp.filled img{ animation:pop .35s ease; transform:scale(1.1); }
+  .stamp.reward img{ filter:drop-shadow(0 0 6px rgba(211,162,74,.5)); }
+  @keyframes pop{ from{ transform:scale(.7); opacity:.3; } to{ transform:scale(1); opacity:1; } }
+
+  .hint{ font-size:13px; color:#8a7a5c; text-align:center; margin-top:16px; }
+  .nav-link{text-align:center; margin-top:20px; font-size:14px;}
+  .nav-link a{color:var(--navy); text-decoration:none; font-weight:600; padding:8px 0; display:inline-block;}
+  .barra-wrap{ margin-top:12px; height:8px; border-radius:8px; background:var(--gold-dim); overflow:hidden; }
+  .barra{ height:100%; background:linear-gradient(90deg,var(--navy),#3a5a80); border-radius:8px; transition:width .6s ease; }
+
+  @media (prefers-reduced-motion: reduce){ .stamp.filled{ animation:none; } .barra{ transition:none; } }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <img src="img/logo.png" alt="Take Away Coffee & Drinks">
+  </div>
+  <div class="perforation"></div>
+  <div class="body" id="contenido">
+    <div class="estado">⏳ Cargando tu tarjeta…</div>
+  </div>
+</div>
+
+<script>
+  const API_URL = 'https://script.google.com/macros/s/AKfycbw-xqLfIhxt6t8x2wf0ZGoUrjDKNnsXBjQCo-2ny8u6Iy52z1Fc13-lH6PU41v7ZqJy/exec';
+  const TOTAL_SELLOS = 10;
+
+  const params = new URLSearchParams(window.location.search);
+  const telefono = params.get('tel');
+  const contenido = document.getElementById('contenido');
+
+  async function cargar(){
+    if(!telefono){
+      contenido.innerHTML = '<div class="estado">Falta el número de teléfono.<br><a href="index.html" style="color:var(--gold);font-weight:700;">Inicia sesión aquí</a></div>';
+      return;
+    }
+    try{
+      const res = await fetch(`${API_URL}?accion=consultar&telefono=${encodeURIComponent(telefono)}`);
+      const data = await res.json();
+      if(data.error){
+        contenido.innerHTML = '<div class="estado">☕ No encontramos tu tarjeta<br><a href="registro.html" style="color:var(--gold);font-weight:700;">Regístrate aquí</a> o <a href="index.html" style="color:var(--gold);font-weight:700;">intenta con otro número</a></div>';
+        return;
+      }
+      renderizar(data);
+    }catch(err){
+      contenido.innerHTML = '<div class="estado">⚠️ No se pudo conectar.<br>Intenta de nuevo.</div>';
+    }
+  }
+
+  function renderizar(cliente){
+    let stampsHtml = '';
+    for(let i = 1; i <= TOTAL_SELLOS; i++){
+      const esUltimo = i === TOTAL_SELLOS;
+      const lleno = i <= cliente.sellos;
+      const clase = esUltimo ? 'reward' : (lleno ? 'filled' : 'vacio');
+      const img = (lleno || esUltimo) ? 'img/sello-lleno.png' : 'img/sello-vacio.png';
+      stampsHtml += `<div class="stamp ${clase}"><img src="${img}" alt=""></div>`;
+    }
+    const progreso = Math.round((cliente.sellos / TOTAL_SELLOS) * 100);
+
+    contenido.innerHTML = `
+      <div class="encabezado">
+        <div>
+          <div class="saludo">👋 ${cliente.nombre}</div>
+          <div class="miembro">Tu tarjeta Take Away</div>
+        </div>
+        <div class="puntos-wrap">
+          <div class="num">${cliente.puntos}</div>
+          <div class="lbl">puntos</div>
+        </div>
+      </div>
+      <div class="sellos">
+        <div class="sellos-title">
+          <span>☕ Café</span>
+          <small>${cliente.sellos} / ${TOTAL_SELLOS}</small>
+        </div>
+        <div class="stamps">${stampsHtml}</div>
+        <div class="barra-wrap"><div class="barra" style="width:${progreso}%"></div></div>
+      </div>
+      <div class="hint">✨ El sello ${TOTAL_SELLOS} es tu café gratis</div>
+      <div class="nav-link"><a href="index.html">← Cambiar de tarjeta</a></div>
+    `;
+  }
+
+  cargar();
+</script>
+</body>
+</html>

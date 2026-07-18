@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Take Away — Panel caja</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#fff; --bg-dark:#8f7248; --card:#f6efdf; --navy:#1e3450; --gold:#d3a24a; --gold-dim:#e8dcc0; --white:#fffaf0;}
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{background:var(--bg); min-height:100vh; display:flex; align-items:center; justify-content:center;
+       padding:16px; font-family:'Quicksand',sans-serif; -webkit-tap-highlight-color:transparent;}
+  .card{width:100%; max-width:380px; background:var(--card); border-radius:32px; overflow:hidden;
+        box-shadow:0 25px 50px -18px rgba(0,0,0,.5);}
+  .header{padding:32px 24px 28px; text-align:center; position:relative; overflow:hidden;
+    background:
+      radial-gradient(circle 110px at 15% -25px, #9e8260 85px, transparent 85px),
+      radial-gradient(circle 70px at 88% -15px, #9e8260 55px, transparent 55px),
+      radial-gradient(circle 60px at 12% 105%, #9e8260 45px, transparent 45px),
+      radial-gradient(circle 80px at 80% 108%, #9e8260 62px, transparent 62px),
+      var(--bg-dark);}
+  .header img{ width:100%; max-width:180px; height:auto; display:inline-block; position:relative; z-index:1; }
+  .tagline{font-family:'Baloo 2',sans-serif; color:var(--white); font-size:11px; letter-spacing:2px; text-transform:uppercase; margin-top:6px; position:relative; z-index:1;}
+  .body{padding:28px 24px;}
+  label{display:block; font-weight:600; color:var(--navy); font-size:13px; margin-bottom:8px; letter-spacing:.3px;}
+  input{width:100%; padding:16px 16px; border-radius:16px; border:2px solid #e3d6b8;
+        font-family:'Quicksand',sans-serif; font-size:16px; margin-bottom:18px; background:var(--white);
+        transition:border-color .2s, box-shadow .2s; -webkit-appearance:none;}
+  input:focus{outline:none; border-color:var(--gold); box-shadow:0 0 0 4px rgba(211,162,74,.18);}
+  input::placeholder{color:#c4b69a;}
+  button{padding:16px; border:none; border-radius:16px; background:linear-gradient(135deg,var(--navy),#243b5e);
+         color:var(--white); font-family:'Baloo 2',sans-serif; font-weight:700; font-size:15px;
+         cursor:pointer; transition:transform .15s, box-shadow .2s; touch-action:manipulation;
+         box-shadow:0 4px 12px rgba(30,52,80,.3); position:relative; overflow:hidden;}
+  button:active{transform:scale(.96); box-shadow:0 2px 6px rgba(30,52,80,.2);}
+  button:disabled{opacity:.5; transform:none;}
+  button.gold{background:linear-gradient(135deg,var(--gold),#c49330); color:var(--navy); box-shadow:0 4px 12px rgba(211,162,74,.4);}
+  button.full{width:100%;}
+  .fila-btn{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;}
+  .resultado{margin-top:16px; padding:14px; border-radius:16px; background:var(--white);
+             font-size:14px; color:var(--navy); text-align:center; display:none; line-height:1.5;}
+  .resultado.show{display:block;}
+  .resultado.error{color:#b1442f;}
+  .nav-link{text-align:center; margin-top:20px; font-size:13px; color:#8a7a5c;}
+  .nav-link a{color:var(--navy); text-decoration:none; font-weight:600;}
+  .hidden{display:none;}
+  .badge{background:var(--gold-dim); border-radius:14px; padding:12px; text-align:center; font-size:13px; color:var(--navy); font-weight:600; margin-bottom:18px; border:1px solid #d6c9ae;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <img src="img/logo.png" alt="Take Away">
+    <div class="tagline">Acceso cajero</div>
+  </div>
+
+  <div class="body" id="loginSection">
+    <label for="pinLogin">🔑 PIN de acceso</label>
+    <input id="pinLogin" type="password" inputmode="numeric" placeholder="Ingresa tu PIN">
+    <button id="btnLogin" class="full">🚪 Ingresar</button>
+    <div id="loginMsg" class="resultado"></div>
+    <div class="nav-link"><a href="index.html">← Volver al inicio</a></div>
+  </div>
+
+  <div class="body hidden" id="panelSection">
+    <div class="badge">🔐 Sesión iniciada · PIN verificado</div>
+
+    <label for="telefono">👤 Teléfono del cliente</label>
+    <input id="telefono" inputmode="numeric" placeholder="300 123 4567">
+
+    <div class="fila-btn">
+      <button id="masSello">✅ +1 sello</button>
+      <button id="masPuntos">⭐ +10 puntos</button>
+    </div>
+    <div class="fila-btn">
+      <button class="gold" id="canjearSello">☕ Canjear café (−10)</button>
+    </div>
+
+    <div id="resultado" class="resultado"></div>
+    <div class="nav-link"><a href="#" id="btnCerrarSesion">🔒 Cerrar sesión</a> · <a href="index.html">← Inicio</a></div>
+  </div>
+</div>
+
+<script>
+  const API_URL = 'https://script.google.com/macros/s/AKfycbw-xqLfIhxt6t8x2wf0ZGoUrjDKNnsXBjQCo-2ny8u6Iy52z1Fc13-lH6PU41v7ZqJy/exec';
+  let pinActual = '';
+
+  const loginSection = document.getElementById('loginSection');
+  const panelSection = document.getElementById('panelSection');
+  const loginMsg = document.getElementById('loginMsg');
+  const resultado = document.getElementById('resultado');
+
+  function mostrarLogin(texto, esError){
+    loginMsg.textContent = texto;
+    loginMsg.className = 'resultado show' + (esError ? ' error' : '');
+  }
+
+  function mostrar(texto, esError){
+    resultado.textContent = texto;
+    resultado.className = 'resultado show' + (esError ? ' error' : '');
+  }
+
+  document.getElementById('btnLogin').addEventListener('click', async () => {
+    const pin = document.getElementById('pinLogin').value.trim();
+    if(!pin){ mostrarLogin('✏️ Escribe el PIN.', true); return; }
+
+    mostrarLogin('⏳ Verificando…', false);
+    try{
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ accion: 'sumar', pin, telefono: '000', puntos: 0, sellos: 0 })
+      });
+      const data = await res.json();
+
+      if(data.error === 'pin_incorrecto'){
+        mostrarLogin('❌ PIN incorrecto.', true);
+      } else {
+        pinActual = pin;
+        loginSection.classList.add('hidden');
+        panelSection.classList.remove('hidden');
+      }
+    }catch(err){
+      mostrarLogin('⚠️ No se pudo conectar.', true);
+    }
+  });
+
+  document.getElementById('pinLogin').addEventListener('keydown', (e) => {
+    if(e.key === 'Enter') document.getElementById('btnLogin').click();
+  });
+
+  document.getElementById('btnCerrarSesion').addEventListener('click', (e) => {
+    e.preventDefault();
+    pinActual = '';
+    document.getElementById('pinLogin').value = '';
+    document.getElementById('telefono').value = '';
+    resultado.className = 'resultado';
+    loginMsg.className = 'resultado';
+    panelSection.classList.add('hidden');
+    loginSection.classList.remove('hidden');
+    document.getElementById('pinLogin').focus();
+  });
+
+  async function actualizar(accion, puntos, sellos){
+    const telefono = document.getElementById('telefono').value.trim();
+    if(!telefono){ mostrar('✏️ Escribe el teléfono del cliente.', true); return; }
+
+    mostrar('⏳ Procesando…', false);
+    try{
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ accion, pin: pinActual, telefono, puntos, sellos })
+      });
+      const data = await res.json();
+
+      if(data.ok){
+        mostrar(`✅ Listo · ${data.puntos} pts · ${data.sellos}/10 sellos`, false);
+      } else if(data.error === 'pin_incorrecto'){
+        mostrar('🔒 El PIN ya no es válido. Vuelve a iniciar sesión.', true);
+      } else if(data.error === 'no_encontrado'){
+        mostrar('❌ Ese cliente no está registrado.', true);
+      } else {
+        mostrar('❌ Algo falló, intenta de nuevo.', true);
+      }
+    }catch(err){
+      mostrar('⚠️ No se pudo conectar.', true);
+    }
+  }
+
+  document.getElementById('masSello').addEventListener('click', () => actualizar('sumar', 0, 1));
+  document.getElementById('masPuntos').addEventListener('click', () => actualizar('sumar', 10, 0));
+  document.getElementById('canjearSello').addEventListener('click', () => actualizar('canjear', 0, 10));
+</script>
+</body>
+</html>
