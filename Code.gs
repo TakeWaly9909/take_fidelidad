@@ -1,29 +1,14 @@
-/**
- * TAKE AWAY — API de fidelización sobre Google Sheets
- * ---------------------------------------------------
- * 1. Crea una Google Sheet con una hoja llamada "Clientes" y estos encabezados
- *    en la fila 1: telefono | nombre | puntos | sellos | fecha
- * 2. Extensiones > Apps Script, pega este archivo reemplazando el contenido.
- * 3. Edita el PIN dentro de configurarPin() y corre esa función UNA VEZ
- *    (▶ arriba, elige esa función). Solo se guarda su hash, nunca el PIN.
- * 4. Implementar > Nueva implementación > Tipo: Aplicación web
- *    - Ejecutar como: Yo
- *    - Quién tiene acceso: Cualquiera
- *    Copia la URL que te da y pégala en config.js (API_URL).
- *
- * Si ya tenías una implementación anterior: vuelve a correr configurarPin()
- * (la propiedad cambió de ADMIN_PIN a ADMIN_PIN_HASH) y crea una nueva
- * versión de la implementación para que los cambios queden activos.
- */
+
 
 var SESION_TTL_SEG = 1800;        // duración de la sesión del cajero (30 min)
 var MAX_INTENTOS_LOGIN = 5;       // intentos de PIN antes de bloquear
 var VENTANA_INTENTOS_SEG = 300;   // ventana del bloqueo (5 min)
 var CACHE_CONSULTA_SEG = 20;      // cuánto se cachea una consulta de cliente
+var CACHE_LISTA_SEG = 15;         // cuánto se cachea la tabla completa de clientes
 
 function configurarPin() {
-  // Cambia '1234' por el PIN real antes de correr esta función una sola vez.
-  PropertiesService.getScriptProperties().setProperty('ADMIN_PIN_HASH', hashHex_('1234'));
+ 
+  PropertiesService.getScriptProperties().setProperty('ADMIN_PIN_HASH', hashHex_('9909'));
 }
 
 function hashHex_(texto) {
@@ -60,12 +45,33 @@ function buscarCliente(sheet, telefono) {
   return { telefono: String(datos[0]), nombre: datos[1], puntos: datos[2], sellos: datos[3] };
 }
 
+// Trae toda la hoja en una sola lectura (para el panel de admin).
+function listarClientes(sheet) {
+  var ultimaFila = sheet.getLastRow();
+  if (ultimaFila < 2) return [];
+  var datos = sheet.getRange(2, 1, ultimaFila - 1, 5).getValues();
+  var lista = [];
+  for (var i = 0; i < datos.length; i++) {
+    if (datos[i][0] === '') continue;
+    lista.push({
+      telefono: String(datos[i][0]),
+      nombre: datos[i][1],
+      puntos: datos[i][2],
+      sellos: datos[i][3],
+      fecha: datos[i][4] instanceof Date ? datos[i][4].toISOString() : String(datos[i][4])
+    });
+  }
+  return lista;
+}
+
 function cache_() {
   return CacheService.getScriptCache();
 }
 
 function invalidarCacheCliente_(telefono) {
-  cache_().remove('cliente_' + telefono);
+  var cache = cache_();
+  cache.remove('cliente_' + telefono);
+  cache.remove('lista_clientes');
 }
 
 function loginBloqueado_() {
@@ -141,6 +147,7 @@ function doPost(e) {
       } finally {
         lock.releaseLock();
       }
+      invalidarCacheCliente_(data.telefono);
       return salida({ ok: true });
     }
 
@@ -162,6 +169,23 @@ function doPost(e) {
     if (data.accion === 'logout') {
       invalidarSesion_(data.token);
       return salida({ ok: true });
+    }
+
+    if (data.accion === 'listar') {
+      if (!sesionValida_(data.token)) {
+        return salida({ error: 'sesion_invalida' });
+      }
+      var cache = cache_();
+      var enCache = cache.get('lista_clientes');
+      if (enCache) return salida(JSON.parse(enCache));
+
+      var clientes = listarClientes(sheet);
+      try {
+        cache.put('lista_clientes', JSON.stringify(clientes), CACHE_LISTA_SEG);
+      } catch (errCache) {
+        // La lista es demasiado grande para el cache; no pasa nada, se sirve sin cachear.
+      }
+      return salida(clientes);
     }
 
     if (data.accion === 'sumar' || data.accion === 'canjear') {

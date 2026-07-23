@@ -53,10 +53,16 @@
   .perforation::before{ left:-9px; } .perforation::after{ right:-9px; }
 
   .body{ padding:20px 16px 24px; }
-  .estado{ text-align:center; color:var(--navy-2); font-weight:600; font-size:15px; padding:40px 8px; line-height:1.7; }
+  .estado{ text-align:center; color:var(--navy-2); font-weight:600; font-size:15px; padding:40px 8px; line-height:1.7;
+           display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .estado .fila{ display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; }
+  .icon{width:18px; height:18px; flex-shrink:0;}
+  .icon.spin{animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
 
   .encabezado{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px; }
-  .encabezado .saludo{ font-family:'Baloo 2',sans-serif; font-weight:700; color:var(--navy); font-size:22px; }
+  .encabezado .saludo{ font-family:'Baloo 2',sans-serif; font-weight:700; color:var(--navy); font-size:22px;
+                        display:flex; align-items:center; gap:8px; }
   .encabezado .miembro{ font-size:12px; color:#8a7a5c; letter-spacing:.5px; margin-top:2px; }
   .encabezado .puntos-wrap{ text-align:right; background:linear-gradient(135deg,var(--gold-dim),#f0e7d0); padding:8px 16px; border-radius:16px; }
   .encabezado .num{ font-family:'Baloo 2',sans-serif; font-weight:800; color:var(--gold); font-size:28px; line-height:1; }
@@ -64,6 +70,7 @@
 
   .sellos{ margin-top:20px; }
   .sellos-title{ font-family:'Baloo 2',sans-serif; font-weight:700; color:var(--navy); font-size:15px; display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .sellos-title span{ display:flex; align-items:center; gap:6px; }
   .sellos-title small{ font-family:'Quicksand',sans-serif; font-weight:600; color:#8a7a5c; font-size:12px; }
 
   .stamps{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
@@ -74,9 +81,11 @@
   .stamp.reward img{ filter:drop-shadow(0 0 6px rgba(211,162,74,.5)); }
   @keyframes pop{ from{ transform:scale(.7); opacity:.3; } to{ transform:scale(1); opacity:1; } }
 
-  .hint{ font-size:13px; color:#8a7a5c; text-align:center; margin-top:16px; }
+  .hint{ font-size:13px; color:#8a7a5c; text-align:center; margin-top:16px;
+         display:flex; align-items:center; justify-content:center; gap:6px; }
   .nav-link{text-align:center; margin-top:20px; font-size:14px;}
-  .nav-link a{color:var(--navy); text-decoration:none; font-weight:600; padding:8px 0; display:inline-block;}
+  .nav-link a{color:var(--navy); text-decoration:none; font-weight:600; padding:8px 0;
+              display:inline-flex; align-items:center; gap:6px;}
   .barra-wrap{ margin-top:12px; height:8px; border-radius:8px; background:var(--gold-dim); overflow:hidden; }
   .barra{ height:100%; background:linear-gradient(90deg,var(--navy),#3a5a80); border-radius:8px; transition:width .6s ease; }
 
@@ -90,7 +99,7 @@
   </div>
   <div class="perforation"></div>
   <div class="body" id="contenido">
-    <div class="estado">⏳ Cargando tu tarjeta…</div>
+    <div class="estado"><div class="fila"><svg class="icon spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg> Cargando tu tarjeta…</div></div>
   </div>
 </div>
 
@@ -111,12 +120,15 @@
       const res = await fetch(`${API_URL}?accion=consultar&telefono=${encodeURIComponent(telefono)}`);
       const data = await res.json();
       if(data.error){
-        contenido.innerHTML = '<div class="estado">☕ No encontramos tu tarjeta<br><a href="registro.html" style="color:var(--gold);font-weight:700;">Regístrate aquí</a> o <a href="index.html" style="color:var(--gold);font-weight:700;">intenta con otro número</a></div>';
+        contenido.innerHTML = `<div class="estado">
+          <div class="fila">${ICONOS.cafe} No encontramos tu tarjeta</div>
+          <div class="fila"><a href="registro.html" style="color:var(--gold);font-weight:700;">Regístrate aquí</a> o <a href="index.html" style="color:var(--gold);font-weight:700;">intenta con otro número</a></div>
+        </div>`;
         return;
       }
       renderizar(data);
     }catch(err){
-      contenido.innerHTML = '<div class="estado">⚠️ No se pudo conectar.<br>Intenta de nuevo.</div>';
+      contenido.innerHTML = `<div class="estado"><div class="fila">${ICONOS.alerta} No se pudo conectar.</div>Intenta de nuevo.</div>`;
     }
   }
 
@@ -134,24 +146,24 @@
     contenido.innerHTML = `
       <div class="encabezado">
         <div>
-          <div class="saludo">👋 ${cliente.nombre}</div>
+          <div class="saludo">${ICONOS.usuario} ${escapeHtml(cliente.nombre)}</div>
           <div class="miembro">Tu tarjeta Take Away</div>
         </div>
         <div class="puntos-wrap">
-          <div class="num">${cliente.puntos}</div>
+          <div class="num">${Number(cliente.puntos) || 0}</div>
           <div class="lbl">puntos</div>
         </div>
       </div>
       <div class="sellos">
         <div class="sellos-title">
-          <span>☕ Café</span>
-          <small>${cliente.sellos} / ${TOTAL_SELLOS}</small>
+          <span>${ICONOS.cafe} Café</span>
+          <small>${Number(cliente.sellos) || 0} / ${TOTAL_SELLOS}</small>
         </div>
         <div class="stamps">${stampsHtml}</div>
         <div class="barra-wrap"><div class="barra" style="width:${progreso}%"></div></div>
       </div>
-      <div class="hint">✨ El sello ${TOTAL_SELLOS} es tu café gratis</div>
-      <div class="nav-link"><a href="index.html">← Cambiar de tarjeta</a></div>
+      <div class="hint">${ICONOS.regalo} El sello ${TOTAL_SELLOS} es tu café gratis</div>
+      <div class="nav-link"><a href="index.html">${ICONOS.flechaAtras} Cambiar de tarjeta</a></div>
     `;
   }
 

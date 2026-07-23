@@ -24,7 +24,10 @@
   .header img{ width:100%; max-width:180px; height:auto; display:inline-block; position:relative; z-index:1; }
   .tagline{font-family:'Baloo 2',sans-serif; color:var(--white); font-size:11px; letter-spacing:2px; text-transform:uppercase; margin-top:6px; position:relative; z-index:1;}
   .body{padding:28px 24px;}
-  label{display:block; font-weight:600; color:var(--navy); font-size:13px; margin-bottom:8px; letter-spacing:.3px;}
+  label{display:flex; align-items:center; gap:6px; font-weight:600; color:var(--navy); font-size:13px; margin-bottom:8px; letter-spacing:.3px;}
+  .icon{width:18px; height:18px; flex-shrink:0;}
+  .icon.spin{animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
   input{width:100%; padding:16px 16px; border-radius:16px; border:2px solid #e3d6b8;
         font-family:'Quicksand',sans-serif; font-size:16px; margin-bottom:18px; background:var(--white);
         transition:border-color .2s, box-shadow .2s; -webkit-appearance:none;}
@@ -33,21 +36,42 @@
   button{padding:16px; border:none; border-radius:16px; background:linear-gradient(135deg,var(--navy),#243b5e);
          color:var(--white); font-family:'Baloo 2',sans-serif; font-weight:700; font-size:15px;
          cursor:pointer; transition:transform .15s, box-shadow .2s; touch-action:manipulation;
-         box-shadow:0 4px 12px rgba(30,52,80,.3); position:relative; overflow:hidden;}
+         box-shadow:0 4px 12px rgba(30,52,80,.3); position:relative; overflow:hidden;
+         display:flex; align-items:center; justify-content:center; gap:8px;}
   button:active{transform:scale(.96); box-shadow:0 2px 6px rgba(30,52,80,.2);}
   button:disabled{opacity:.5; transform:none;}
   button.gold{background:linear-gradient(135deg,var(--gold),#c49330); color:var(--navy); box-shadow:0 4px 12px rgba(211,162,74,.4);}
   button.full{width:100%;}
   .fila-btn{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;}
   .resultado{margin-top:16px; padding:14px; border-radius:16px; background:var(--white);
-             font-size:14px; color:var(--navy); text-align:center; display:none; line-height:1.5;}
-  .resultado.show{display:block;}
+             font-size:14px; color:var(--navy); text-align:center; display:none; line-height:1.5;
+             align-items:center; justify-content:center; gap:8px;}
+  .resultado.show{display:flex;}
   .resultado.error{color:#b1442f;}
   .nav-link{text-align:center; margin-top:20px; font-size:13px; color:#8a7a5c;}
-  .nav-link a{color:var(--navy); text-decoration:none; font-weight:600;}
+  .nav-link a{color:var(--navy); text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:6px;}
   .hidden{display:none;}
-  .badge{background:var(--gold-dim); border-radius:14px; padding:12px; text-align:center; font-size:13px; color:var(--navy); font-weight:600; margin-bottom:18px; border:1px solid #d6c9ae;}
+  .badge{background:var(--gold-dim); border-radius:14px; padding:12px; text-align:center; font-size:13px; color:var(--navy); font-weight:600; margin-bottom:18px; border:1px solid #d6c9ae;
+         display:flex; align-items:center; justify-content:center; gap:8px;}
   .badge.warn{background:#fbe8df; border-color:#e3b8a2; color:#8a3a20;}
+  .clientes-toggle{margin-top:8px;}
+  .clientes-toggle button{background:none; border:2px solid var(--navy); color:var(--navy); box-shadow:none;}
+  .clientes-screen-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;}
+  .clientes-titulo{display:flex; align-items:center; gap:8px; font-family:'Baloo 2',sans-serif; font-weight:700; color:var(--navy); font-size:17px;}
+  .input-icon{position:relative;}
+  .input-icon .icon{position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#8a7a5c;}
+  .input-icon input{padding-left:42px;}
+  .btn-icon{width:44px; height:44px; flex-shrink:0; padding:0; display:flex; align-items:center; justify-content:center;}
+  .lista-clientes{margin-top:4px; max-height:340px; overflow-y:auto; border:1px solid #e3d6b8; border-radius:16px; background:var(--white);}
+  .cliente-row{display:flex; justify-content:space-between; align-items:center; gap:8px; padding:12px 14px; border-bottom:1px solid #e3d6b8; cursor:pointer; transition:background .15s;}
+  .cliente-row:last-child{border-bottom:none;}
+  .cliente-row:active{background:var(--gold-dim);}
+  .cliente-nombre{font-weight:700; color:var(--navy); font-size:14px;}
+  .cliente-tel{font-size:12px; color:#8a7a5c; margin-top:2px;}
+  .cliente-stats{display:flex; flex-direction:column; align-items:flex-end; gap:2px; font-size:12px; color:var(--navy); font-weight:600; white-space:nowrap;}
+  .cliente-stats span{display:inline-flex; align-items:center; gap:4px;}
+  .cliente-stats .icon{width:13px; height:13px;}
+  .cliente-vacio{padding:20px; text-align:center; color:#8a7a5c; font-size:13px;}
 </style>
 </head>
 <body>
@@ -58,30 +82,48 @@
   </div>
 
   <div class="body" id="loginSection">
-    <label for="pinLogin">🔑 PIN de acceso</label>
+    <label for="pinLogin"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> PIN de acceso</label>
     <input id="pinLogin" type="password" inputmode="numeric" placeholder="Ingresa tu PIN">
-    <button id="btnLogin" class="full">🚪 Ingresar</button>
+    <button id="btnLogin" class="full"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Ingresar</button>
     <div id="loginMsg" class="resultado"></div>
-    <div class="nav-link"><a href="index.html">← Volver al inicio</a></div>
+    <div class="nav-link"><a href="index.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Volver al inicio</a></div>
   </div>
 
   <div class="body hidden" id="panelSection">
-    <div class="badge">🔐 Sesión iniciada · PIN verificado</div>
-    <div class="badge warn hidden" id="avisoPinDefecto">⚠️ Estás usando el PIN de fábrica. Cámbialo desde configurarPin() en Apps Script.</div>
+    <div class="badge"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Sesión iniciada · PIN verificado</div>
+    <div class="badge warn hidden" id="avisoPinDefecto"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Estás usando el PIN de fábrica. Cámbialo desde configurarPin() en Apps Script.</div>
 
-    <label for="telefono">👤 Teléfono del cliente</label>
+    <label for="telefono"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg> Teléfono del cliente</label>
     <input id="telefono" inputmode="numeric" placeholder="300 123 4567">
 
     <div class="fila-btn">
-      <button id="masSello">✅ +1 sello</button>
-      <button id="masPuntos">⭐ +10 puntos</button>
+      <button id="masSello"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg> +1 sello</button>
+      <button id="masPuntos"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> +10 puntos</button>
     </div>
     <div class="fila-btn">
-      <button class="gold" id="canjearSello">☕ Canjear café (−10)</button>
+      <button class="gold" id="canjearSello"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg> Canjear café (−10)</button>
     </div>
 
     <div id="resultado" class="resultado"></div>
-    <div class="nav-link"><a href="#" id="btnCerrarSesion">🔒 Cerrar sesión</a> · <a href="index.html">← Inicio</a></div>
+
+    <div class="clientes-toggle">
+      <button class="full" id="btnVerClientes"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Ver clientes</button>
+    </div>
+
+    <div class="nav-link"><a href="#" id="btnCerrarSesion"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Cerrar sesión</a> · <a href="index.html"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Inicio</a></div>
+  </div>
+
+  <div class="body hidden" id="clientesScreen">
+    <div class="clientes-screen-header">
+      <button class="btn-icon" id="btnVolverPanel" title="Volver"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+      <div class="clientes-titulo"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Clientes</div>
+      <button class="btn-icon" id="btnRefrescarClientes" title="Actualizar"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>
+    </div>
+    <div class="input-icon">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="buscarCliente" placeholder="Buscar por nombre o teléfono">
+    </div>
+    <div class="lista-clientes" id="listaClientes"></div>
   </div>
 </div>
 
@@ -89,26 +131,35 @@
 <script>
   const CLAVE_SESION = 'ta_sesion_token';
   let tokenActual = sessionStorage.getItem(CLAVE_SESION) || '';
+  let clientesCargados = [];
 
   const loginSection = document.getElementById('loginSection');
   const panelSection = document.getElementById('panelSection');
+  const clientesScreen = document.getElementById('clientesScreen');
   const loginMsg = document.getElementById('loginMsg');
   const resultado = document.getElementById('resultado');
   const avisoPinDefecto = document.getElementById('avisoPinDefecto');
 
-  function mostrarLogin(texto, esError){
-    loginMsg.textContent = texto;
+  function mostrarLogin(icono, texto, esError){
+    loginMsg.innerHTML = `${icono} <span>${escapeHtml(texto)}</span>`;
     loginMsg.className = 'resultado show' + (esError ? ' error' : '');
   }
 
-  function mostrar(texto, esError){
-    resultado.textContent = texto;
+  function mostrar(icono, texto, esError){
+    resultado.innerHTML = `${icono} <span>${texto}</span>`;
     resultado.className = 'resultado show' + (esError ? ' error' : '');
   }
 
   function irAlPanel(){
     loginSection.classList.add('hidden');
+    clientesScreen.classList.add('hidden');
     panelSection.classList.remove('hidden');
+  }
+
+  function irAClientes(){
+    panelSection.classList.add('hidden');
+    clientesScreen.classList.remove('hidden');
+    cargarClientes();
   }
 
   function volverALogin(){
@@ -120,7 +171,10 @@
     loginMsg.className = 'resultado';
     avisoPinDefecto.classList.add('hidden');
     panelSection.classList.add('hidden');
+    clientesScreen.classList.add('hidden');
     loginSection.classList.remove('hidden');
+    document.getElementById('buscarCliente').value = '';
+    clientesCargados = [];
     document.getElementById('pinLogin').focus();
   }
 
@@ -130,9 +184,9 @@
 
   document.getElementById('btnLogin').addEventListener('click', async () => {
     const pin = document.getElementById('pinLogin').value.trim();
-    if(!pin){ mostrarLogin('✏️ Escribe el PIN.', true); return; }
+    if(!pin){ mostrarLogin(ICONOS.alerta, 'Escribe el PIN.', true); return; }
 
-    mostrarLogin('⏳ Verificando…', false);
+    mostrarLogin(ICONOS.spinner, 'Verificando…', false);
     try{
       const pinHash = await sha256Hex(pin);
       const res = await fetch(API_URL, {
@@ -143,19 +197,19 @@
       const data = await res.json();
 
       if(data.error === 'pin_incorrecto'){
-        mostrarLogin('❌ PIN incorrecto.', true);
+        mostrarLogin(ICONOS.error, 'PIN incorrecto.', true);
       } else if(data.error === 'demasiados_intentos'){
-        mostrarLogin('🚫 Demasiados intentos. Espera unos minutos.', true);
+        mostrarLogin(ICONOS.bloqueado, 'Demasiados intentos. Espera unos minutos.', true);
       } else if(data.ok){
         tokenActual = data.token;
         sessionStorage.setItem(CLAVE_SESION, tokenActual);
         avisoPinDefecto.classList.toggle('hidden', data.warning !== 'pin_default');
         irAlPanel();
       } else {
-        mostrarLogin('❌ Algo falló, intenta de nuevo.', true);
+        mostrarLogin(ICONOS.error, 'Algo falló, intenta de nuevo.', true);
       }
     }catch(err){
-      mostrarLogin('⚠️ No se pudo conectar.', true);
+      mostrarLogin(ICONOS.alerta, 'No se pudo conectar.', true);
     }
   });
 
@@ -178,9 +232,9 @@
 
   async function actualizar(accion, puntos, sellos){
     const telefono = document.getElementById('telefono').value.trim();
-    if(!telefono){ mostrar('✏️ Escribe el teléfono del cliente.', true); return; }
+    if(!telefono){ mostrar(ICONOS.alerta, 'Escribe el teléfono del cliente.', true); return; }
 
-    mostrar('⏳ Procesando…', false);
+    mostrar(ICONOS.spinner, 'Procesando…', false);
     try{
       const res = await fetch(API_URL, {
         method: 'POST',
@@ -190,23 +244,91 @@
       const data = await res.json();
 
       if(data.ok){
-        mostrar(`✅ Listo · ${data.puntos} pts · ${data.sellos}/10 sellos`, false);
+        mostrar(ICONOS.ok, `Listo · ${data.puntos} pts · ${data.sellos}/10 sellos`, false);
       } else if(data.error === 'sesion_invalida'){
-        mostrar('🔒 La sesión expiró. Vuelve a iniciar sesión.', true);
         volverALogin();
+        mostrarLogin(ICONOS.candado, 'La sesión expiró. Vuelve a iniciar sesión.', true);
       } else if(data.error === 'no_encontrado'){
-        mostrar('❌ Ese cliente no está registrado.', true);
+        mostrar(ICONOS.error, 'Ese cliente no está registrado.', true);
       } else {
-        mostrar('❌ Algo falló, intenta de nuevo.', true);
+        mostrar(ICONOS.error, 'Algo falló, intenta de nuevo.', true);
       }
     }catch(err){
-      mostrar('⚠️ No se pudo conectar.', true);
+      mostrar(ICONOS.alerta, 'No se pudo conectar.', true);
     }
   }
 
   document.getElementById('masSello').addEventListener('click', () => actualizar('sumar', 0, 1));
   document.getElementById('masPuntos').addEventListener('click', () => actualizar('sumar', 10, 0));
   document.getElementById('canjearSello').addEventListener('click', () => actualizar('canjear', 0, 10));
+
+  function renderClientes(lista){
+    const cont = document.getElementById('listaClientes');
+    if(!lista.length){
+      cont.innerHTML = '<div class="cliente-vacio">Sin resultados.</div>';
+      return;
+    }
+    cont.innerHTML = lista.map(c => `
+      <div class="cliente-row" data-telefono="${escapeHtml(c.telefono)}">
+        <div>
+          <div class="cliente-nombre">${escapeHtml(c.nombre)}</div>
+          <div class="cliente-tel">${escapeHtml(c.telefono)}</div>
+        </div>
+        <div class="cliente-stats">
+          <span>${ICONOS.estrella} ${Number(c.puntos) || 0} pts</span>
+          <span>${ICONOS.cafe} ${Number(c.sellos) || 0}/10</span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function cargarClientes(){
+    const cont = document.getElementById('listaClientes');
+    cont.innerHTML = `<div class="cliente-vacio">${ICONOS.spinner} Cargando…</div>`;
+    try{
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ accion: 'listar', token: tokenActual })
+      });
+      const data = await res.json();
+
+      if(data.error === 'sesion_invalida'){
+        volverALogin();
+        mostrarLogin(ICONOS.candado, 'La sesión expiró. Vuelve a iniciar sesión.', true);
+        return;
+      }
+      if(data.error){
+        cont.innerHTML = `<div class="cliente-vacio">${ICONOS.error} No se pudo cargar la lista.</div>`;
+        return;
+      }
+
+      clientesCargados = data;
+      document.getElementById('buscarCliente').value = '';
+      renderClientes(clientesCargados);
+    }catch(err){
+      cont.innerHTML = `<div class="cliente-vacio">${ICONOS.alerta} No se pudo conectar.</div>`;
+    }
+  }
+
+  document.getElementById('btnVerClientes').addEventListener('click', irAClientes);
+  document.getElementById('btnVolverPanel').addEventListener('click', irAlPanel);
+  document.getElementById('btnRefrescarClientes').addEventListener('click', cargarClientes);
+
+  document.getElementById('buscarCliente').addEventListener('input', (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    const filtrados = !q ? clientesCargados : clientesCargados.filter(c =>
+      String(c.nombre).toLowerCase().includes(q) || c.telefono.includes(q)
+    );
+    renderClientes(filtrados);
+  });
+
+  document.getElementById('listaClientes').addEventListener('click', (e) => {
+    const fila = e.target.closest('.cliente-row');
+    if(!fila) return;
+    document.getElementById('telefono').value = fila.dataset.telefono;
+    irAlPanel();
+  });
 </script>
 </body>
 </html>
