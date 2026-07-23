@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Take Away — Panel caja</title>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://script.google.com">
 <style>
   :root{--bg:#fff; --bg-dark:#8f7248; --card:#f6efdf; --navy:#1e3450; --gold:#d3a24a; --gold-dim:#e8dcc0; --white:#fffaf0;}
   *{box-sizing:border-box; margin:0; padding:0;}
@@ -46,6 +47,7 @@
   .nav-link a{color:var(--navy); text-decoration:none; font-weight:600;}
   .hidden{display:none;}
   .badge{background:var(--gold-dim); border-radius:14px; padding:12px; text-align:center; font-size:13px; color:var(--navy); font-weight:600; margin-bottom:18px; border:1px solid #d6c9ae;}
+  .badge.warn{background:#fbe8df; border-color:#e3b8a2; color:#8a3a20;}
 </style>
 </head>
 <body>
@@ -65,6 +67,7 @@
 
   <div class="body hidden" id="panelSection">
     <div class="badge">🔐 Sesión iniciada · PIN verificado</div>
+    <div class="badge warn hidden" id="avisoPinDefecto">⚠️ Estás usando el PIN de fábrica. Cámbialo desde configurarPin() en Apps Script.</div>
 
     <label for="telefono">👤 Teléfono del cliente</label>
     <input id="telefono" inputmode="numeric" placeholder="300 123 4567">
@@ -82,14 +85,16 @@
   </div>
 </div>
 
+<script src="config.js"></script>
 <script>
-  const API_URL = 'https://script.google.com/macros/s/AKfycbw-xqLfIhxt6t8x2wf0ZGoUrjDKNnsXBjQCo-2ny8u6Iy52z1Fc13-lH6PU41v7ZqJy/exec';
-  let pinActual = '';
+  const CLAVE_SESION = 'ta_sesion_token';
+  let tokenActual = sessionStorage.getItem(CLAVE_SESION) || '';
 
   const loginSection = document.getElementById('loginSection');
   const panelSection = document.getElementById('panelSection');
   const loginMsg = document.getElementById('loginMsg');
   const resultado = document.getElementById('resultado');
+  const avisoPinDefecto = document.getElementById('avisoPinDefecto');
 
   function mostrarLogin(texto, esError){
     loginMsg.textContent = texto;
@@ -101,25 +106,53 @@
     resultado.className = 'resultado show' + (esError ? ' error' : '');
   }
 
+  function irAlPanel(){
+    loginSection.classList.add('hidden');
+    panelSection.classList.remove('hidden');
+  }
+
+  function volverALogin(){
+    tokenActual = '';
+    sessionStorage.removeItem(CLAVE_SESION);
+    document.getElementById('pinLogin').value = '';
+    document.getElementById('telefono').value = '';
+    resultado.className = 'resultado';
+    loginMsg.className = 'resultado';
+    avisoPinDefecto.classList.add('hidden');
+    panelSection.classList.add('hidden');
+    loginSection.classList.remove('hidden');
+    document.getElementById('pinLogin').focus();
+  }
+
+  // Si ya había una sesión de una carga anterior de la página, se reutiliza
+  // sin pedir el PIN de nuevo (expira sola en el servidor a los 30 min).
+  if(tokenActual) irAlPanel();
+
   document.getElementById('btnLogin').addEventListener('click', async () => {
     const pin = document.getElementById('pinLogin').value.trim();
     if(!pin){ mostrarLogin('✏️ Escribe el PIN.', true); return; }
 
     mostrarLogin('⏳ Verificando…', false);
     try{
+      const pinHash = await sha256Hex(pin);
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ accion: 'sumar', pin, telefono: '000', puntos: 0, sellos: 0 })
+        body: JSON.stringify({ accion: 'login', pinHash })
       });
       const data = await res.json();
 
       if(data.error === 'pin_incorrecto'){
         mostrarLogin('❌ PIN incorrecto.', true);
+      } else if(data.error === 'demasiados_intentos'){
+        mostrarLogin('🚫 Demasiados intentos. Espera unos minutos.', true);
+      } else if(data.ok){
+        tokenActual = data.token;
+        sessionStorage.setItem(CLAVE_SESION, tokenActual);
+        avisoPinDefecto.classList.toggle('hidden', data.warning !== 'pin_default');
+        irAlPanel();
       } else {
-        pinActual = pin;
-        loginSection.classList.add('hidden');
-        panelSection.classList.remove('hidden');
+        mostrarLogin('❌ Algo falló, intenta de nuevo.', true);
       }
     }catch(err){
       mostrarLogin('⚠️ No se pudo conectar.', true);
@@ -130,16 +163,17 @@
     if(e.key === 'Enter') document.getElementById('btnLogin').click();
   });
 
-  document.getElementById('btnCerrarSesion').addEventListener('click', (e) => {
+  document.getElementById('btnCerrarSesion').addEventListener('click', async (e) => {
     e.preventDefault();
-    pinActual = '';
-    document.getElementById('pinLogin').value = '';
-    document.getElementById('telefono').value = '';
-    resultado.className = 'resultado';
-    loginMsg.className = 'resultado';
-    panelSection.classList.add('hidden');
-    loginSection.classList.remove('hidden');
-    document.getElementById('pinLogin').focus();
+    const token = tokenActual;
+    volverALogin();
+    if(token){
+      fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ accion: 'logout', token })
+      }).catch(() => {});
+    }
   });
 
   async function actualizar(accion, puntos, sellos){
@@ -151,14 +185,15 @@
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ accion, pin: pinActual, telefono, puntos, sellos })
+        body: JSON.stringify({ accion, token: tokenActual, telefono, puntos, sellos })
       });
       const data = await res.json();
 
       if(data.ok){
         mostrar(`✅ Listo · ${data.puntos} pts · ${data.sellos}/10 sellos`, false);
-      } else if(data.error === 'pin_incorrecto'){
-        mostrar('🔒 El PIN ya no es válido. Vuelve a iniciar sesión.', true);
+      } else if(data.error === 'sesion_invalida'){
+        mostrar('🔒 La sesión expiró. Vuelve a iniciar sesión.', true);
+        volverALogin();
       } else if(data.error === 'no_encontrado'){
         mostrar('❌ Ese cliente no está registrado.', true);
       } else {

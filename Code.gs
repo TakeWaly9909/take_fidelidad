@@ -4,27 +4,51 @@
  * 1. Crea una Google Sheet con una hoja llamada "Clientes" y estos encabezados
  *    en la fila 1: telefono | nombre | puntos | sellos | fecha
  * 2. Extensiones > Apps Script, pega este archivo reemplazando el contenido.
- * 3. Corre UNA VEZ la función configurarPin() (▶ arriba, elige esa función)
- *    para guardar el PIN del admin. Cámbialo antes de correrlo.
+ * 3. Edita el PIN dentro de configurarPin() y corre esa función UNA VEZ
+ *    (▶ arriba, elige esa función). Solo se guarda su hash, nunca el PIN.
  * 4. Implementar > Nueva implementación > Tipo: Aplicación web
  *    - Ejecutar como: Yo
  *    - Quién tiene acceso: Cualquiera
- *    Copia la URL que te da, la vas a usar en los 3 HTML.
+ *    Copia la URL que te da y pégala en config.js (API_URL).
+ *
+ * Si ya tenías una implementación anterior: vuelve a correr configurarPin()
+ * (la propiedad cambió de ADMIN_PIN a ADMIN_PIN_HASH) y crea una nueva
+ * versión de la implementación para que los cambios queden activos.
  */
+
+var SESION_TTL_SEG = 1800;        // duración de la sesión del cajero (30 min)
+var MAX_INTENTOS_LOGIN = 5;       // intentos de PIN antes de bloquear
+var VENTANA_INTENTOS_SEG = 300;   // ventana del bloqueo (5 min)
+var CACHE_CONSULTA_SEG = 20;      // cuánto se cachea una consulta de cliente
 
 function configurarPin() {
   // Cambia '1234' por el PIN real antes de correr esta función una sola vez.
-  PropertiesService.getScriptProperties().setProperty('ADMIN_PIN', '1234');
+  PropertiesService.getScriptProperties().setProperty('ADMIN_PIN_HASH', hashHex_('1234'));
+}
+
+function hashHex_(texto) {
+  var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, texto, Utilities.Charset.UTF_8);
+  return bytes.map(function (b) {
+    var v = (b < 0 ? b + 256 : b).toString(16);
+    return v.length === 1 ? '0' + v : v;
+  }).join('');
+}
+
+function pinEsDefecto_(hash) {
+  return hash === hashHex_('1234');
 }
 
 function getSheet() {
   return SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Clientes');
 }
 
+// Solo lee la columna de teléfono (no toda la hoja) para ubicar la fila.
 function buscarFila(sheet, telefono) {
-  var datos = sheet.getDataRange().getValues();
-  for (var i = 1; i < datos.length; i++) {
-    if (String(datos[i][0]) === String(telefono)) return i + 1;
+  var ultimaFila = sheet.getLastRow();
+  if (ultimaFila < 2) return null;
+  var telefonos = sheet.getRange(2, 1, ultimaFila - 1, 1).getValues();
+  for (var i = 0; i < telefonos.length; i++) {
+    if (String(telefonos[i][0]) === String(telefono)) return i + 2;
   }
   return null;
 }
@@ -36,6 +60,42 @@ function buscarCliente(sheet, telefono) {
   return { telefono: String(datos[0]), nombre: datos[1], puntos: datos[2], sellos: datos[3] };
 }
 
+function cache_() {
+  return CacheService.getScriptCache();
+}
+
+function invalidarCacheCliente_(telefono) {
+  cache_().remove('cliente_' + telefono);
+}
+
+function loginBloqueado_() {
+  return Number(cache_().get('login_intentos') || 0) >= MAX_INTENTOS_LOGIN;
+}
+
+function registrarIntentoFallido_() {
+  var cache = cache_();
+  var intentos = Number(cache.get('login_intentos') || 0) + 1;
+  cache.put('login_intentos', String(intentos), VENTANA_INTENTOS_SEG);
+}
+
+function limpiarIntentos_() {
+  cache_().remove('login_intentos');
+}
+
+function crearSesion_() {
+  var token = Utilities.getUuid();
+  cache_().put('sesion_' + token, 'valida', SESION_TTL_SEG);
+  return token;
+}
+
+function sesionValida_(token) {
+  return !!token && cache_().get('sesion_' + token) === 'valida';
+}
+
+function invalidarSesion_(token) {
+  if (token) cache_().remove('sesion_' + token);
+}
+
 function salida(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
@@ -44,11 +104,19 @@ function salida(obj) {
 function doGet(e) {
   try {
     var accion = e.parameter.accion;
-    var sheet = getSheet();
 
     if (accion === 'consultar') {
-      var cliente = buscarCliente(sheet, e.parameter.telefono);
-      return salida(cliente || { error: 'no_encontrado' });
+      var telefono = e.parameter.telefono;
+      var cache = cache_();
+      var clave = 'cliente_' + telefono;
+      var enCache = cache.get(clave);
+      if (enCache) return salida(JSON.parse(enCache));
+
+      var cliente = buscarCliente(getSheet(), telefono);
+      if (!cliente) return salida({ error: 'no_encontrado' });
+
+      cache.put(clave, JSON.stringify(cliente), CACHE_CONSULTA_SEG);
+      return salida(cliente);
     }
     return salida({ error: 'accion_invalida' });
   } catch (err) {
@@ -63,31 +131,60 @@ function doPost(e) {
     var sheet = getSheet();
 
     if (data.accion === 'registro') {
-      if (buscarCliente(sheet, data.telefono)) {
-        return salida({ error: 'ya_existe' });
+      var lock = LockService.getScriptLock();
+      lock.waitLock(10000);
+      try {
+        if (buscarCliente(sheet, data.telefono)) {
+          return salida({ error: 'ya_existe' });
+        }
+        sheet.appendRow([data.telefono, data.nombre, 0, 0, new Date()]);
+      } finally {
+        lock.releaseLock();
       }
-      sheet.appendRow([data.telefono, data.nombre, 0, 0, new Date()]);
+      return salida({ ok: true });
+    }
+
+    if (data.accion === 'login') {
+      if (loginBloqueado_()) {
+        return salida({ error: 'demasiados_intentos' });
+      }
+      var pinGuardadoHash = PropertiesService.getScriptProperties().getProperty('ADMIN_PIN_HASH');
+      if (data.pinHash !== pinGuardadoHash) {
+        registrarIntentoFallido_();
+        return salida({ error: 'pin_incorrecto' });
+      }
+      limpiarIntentos_();
+      var respuesta = { ok: true, token: crearSesion_() };
+      if (pinEsDefecto_(pinGuardadoHash)) respuesta.warning = 'pin_default';
+      return salida(respuesta);
+    }
+
+    if (data.accion === 'logout') {
+      invalidarSesion_(data.token);
       return salida({ ok: true });
     }
 
     if (data.accion === 'sumar' || data.accion === 'canjear') {
-      var pinGuardado = PropertiesService.getScriptProperties().getProperty('ADMIN_PIN');
-      if (data.pin !== pinGuardado) {
-        return salida({ error: 'pin_incorrecto' });
+      if (!sesionValida_(data.token)) {
+        return salida({ error: 'sesion_invalida' });
       }
       var fila = buscarFila(sheet, data.telefono);
       if (!fila) return salida({ error: 'no_encontrado' });
 
-      var puntosActuales = sheet.getRange(fila, 3).getValue();
-      var sellosActuales = sheet.getRange(fila, 4).getValue();
-      var signo = data.accion === 'sumar' ? 1 : -1;
+      var lockEdicion = LockService.getScriptLock();
+      lockEdicion.waitLock(10000);
+      var nuevosPuntos, nuevosSellos;
+      try {
+        var actuales = sheet.getRange(fila, 3, 1, 2).getValues()[0];
+        var signo = data.accion === 'sumar' ? 1 : -1;
+        nuevosPuntos = Math.max(0, actuales[0] + signo * (data.puntos || 0));
+        nuevosSellos = Math.max(0, Math.min(10, actuales[1] + signo * (data.sellos || 0)));
+        sheet.getRange(fila, 3, 1, 2).setValues([[nuevosPuntos, nuevosSellos]]);
+      } finally {
+        lockEdicion.releaseLock();
+      }
 
-      var nuevosPuntos = Math.max(0, puntosActuales + signo * (data.puntos || 0));
-      var nuevosSellos = Math.max(0, Math.min(10, sellosActuales + signo * (data.sellos || 0)));
-
-      sheet.getRange(fila, 3).setValue(nuevosPuntos);
-      sheet.getRange(fila, 4).setValue(nuevosSellos);
-
+      invalidarCacheCliente_(data.telefono);
       return salida({ ok: true, puntos: nuevosPuntos, sellos: nuevosSellos });
     }
 
