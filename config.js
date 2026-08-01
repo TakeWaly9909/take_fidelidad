@@ -1,11 +1,20 @@
 // Configuración compartida por index.html, registro.html, tarjeta.html y admin.html
 const API_URL = 'https://script.google.com/macros/s/AKfycbzMznc0igGOlevzOmUx1h9J7u-kWu6N0FLbJg425F-cz64C09Dkx0WBbJIdjFtJEB2w/exec';
 
+// Registra el service worker para que la app sea instalable (PWA) y abra rápido offline.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+
 // Hashea el PIN en el navegador: nunca sale texto plano hacia la red.
 async function sha256Hex(texto) {
   const buffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto));
   return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
+
+const CLAVE_TELEFONO = 'ta_telefono';
 
 function escapeHtml(texto) {
   return String(texto).replace(/[&<>"']/g, ch => ({

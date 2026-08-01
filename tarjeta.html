@@ -7,6 +7,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="preconnect" href="https://script.google.com">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1e3450">
+<link rel="icon" href="img/icon-192.png">
+<link rel="apple-touch-icon" href="img/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Take Away">
 <style>
   :root{
     --bg:#fff; --bg-dark:#8f7248; --card:#f6efdf; --line:#e3d6b8;
@@ -57,8 +64,10 @@
            display:flex; flex-direction:column; align-items:center; gap:10px; }
   .estado .fila{ display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; }
   .icon{width:18px; height:18px; flex-shrink:0;}
-  .icon.spin{animation:spin .8s linear infinite;}
-  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .sk-block{background:linear-gradient(90deg,#e9dcc0 25%,#f2e9d3 37%,#e9dcc0 63%); background-size:400% 100%;
+             animation:shimmer 1.3s ease infinite; border-radius:8px; display:inline-block;}
+  @keyframes shimmer{ 0%{background-position:100% 0;} 100%{background-position:0 0;} }
 
   .encabezado{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px; }
   .encabezado .saludo{ font-family:'Baloo 2',sans-serif; font-weight:700; color:var(--navy); font-size:22px;
@@ -79,6 +88,7 @@
   .stamp.vacio img{ opacity:.45; filter:none; }
   .stamp.filled img{ animation:pop .35s ease; transform:scale(1.1); }
   .stamp.reward img{ filter:drop-shadow(0 0 6px rgba(211,162,74,.5)); }
+  .stamp .sk-block{ width:100%; height:100%; border-radius:50%; }
   @keyframes pop{ from{ transform:scale(.7); opacity:.3; } to{ transform:scale(1); opacity:1; } }
 
   .hint{ font-size:13px; color:#8a7a5c; text-align:center; margin-top:16px;
@@ -89,7 +99,7 @@
   .barra-wrap{ margin-top:12px; height:8px; border-radius:8px; background:var(--gold-dim); overflow:hidden; }
   .barra{ height:100%; background:linear-gradient(90deg,var(--navy),#3a5a80); border-radius:8px; transition:width .6s ease; }
 
-  @media (prefers-reduced-motion: reduce){ .stamp.filled{ animation:none; } .barra{ transition:none; } }
+  @media (prefers-reduced-motion: reduce){ .stamp.filled{ animation:none; } .barra{ transition:none; } .sk-block{ animation:none; } }
 </style>
 </head>
 <body>
@@ -99,7 +109,29 @@
   </div>
   <div class="perforation"></div>
   <div class="body" id="contenido">
-    <div class="estado"><div class="fila"><svg class="icon spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg> Cargando tu tarjeta…</div></div>
+    <div class="encabezado">
+      <div>
+        <div class="sk-block" style="width:130px;height:20px;margin-bottom:8px;"></div>
+        <div class="sk-block" style="width:96px;height:11px;"></div>
+      </div>
+      <div class="sk-block" style="width:60px;height:46px;border-radius:16px;"></div>
+    </div>
+    <div class="sellos">
+      <div class="sk-block" style="width:64px;height:15px;margin-bottom:12px;"></div>
+      <div class="stamps">
+        <div class="stamp"><div class="sk-block"></div></div>
+        <div class="stamp"><div class="sk-block"></div></div>
+        <div class="stamp"><div class="sk-block"></div></div>
+        <div class="stamp"><div class="sk-block"></div></div>
+        <div class="stamp"><div class="sk-block"></div></div>
+        <div class="stamp"><div class="sk-block"></div></div>
+        <div class="stamp"><div class="sk-block"></div></div>
+        <div class="stamp"><div class="sk-block"></div></div>
+        <div class="stamp"><div class="sk-block"></div></div>
+        <div class="stamp"><div class="sk-block"></div></div>
+      </div>
+      <div class="barra-wrap"><div class="sk-block" style="width:100%;height:100%;border-radius:8px;"></div></div>
+    </div>
   </div>
 </div>
 
@@ -108,8 +140,14 @@
   const TOTAL_SELLOS = 10;
 
   const params = new URLSearchParams(window.location.search);
-  const telefono = params.get('tel');
+  // Si se abre sin ?tel= (típicamente al abrir la app instalada desde el ícono),
+  // usa el último teléfono guardado para entrar directo a la tarjeta.
+  const telefono = params.get('tel') || localStorage.getItem(CLAVE_TELEFONO);
   const contenido = document.getElementById('contenido');
+
+  if(telefono && !params.get('tel')){
+    history.replaceState(null, '', `tarjeta.html?tel=${encodeURIComponent(telefono)}`);
+  }
 
   async function cargar(){
     if(!telefono){
@@ -120,12 +158,14 @@
       const res = await fetch(`${API_URL}?accion=consultar&telefono=${encodeURIComponent(telefono)}`);
       const data = await res.json();
       if(data.error){
+        localStorage.removeItem(CLAVE_TELEFONO);
         contenido.innerHTML = `<div class="estado">
           <div class="fila">${ICONOS.cafe} No encontramos tu tarjeta</div>
           <div class="fila"><a href="registro.html" style="color:var(--gold);font-weight:700;">Regístrate aquí</a> o <a href="index.html" style="color:var(--gold);font-weight:700;">intenta con otro número</a></div>
         </div>`;
         return;
       }
+      localStorage.setItem(CLAVE_TELEFONO, telefono);
       renderizar(data);
     }catch(err){
       contenido.innerHTML = `<div class="estado"><div class="fila">${ICONOS.alerta} No se pudo conectar.</div>Intenta de nuevo.</div>`;
